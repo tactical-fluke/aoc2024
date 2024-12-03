@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use itertools::Itertools;
 use aoc2024::day::{run_day, Day};
 
 fn main() {
@@ -23,15 +23,7 @@ impl Day for Day2 {
     fn part1(input: &Self::ParsedType) -> Self::OutputType {
         let mut result: Vec<bool> = Vec::with_capacity(input.len());
         for report in input {
-            let ord = report[1].cmp(&report[0]);
-            let mut this_result = true;
-            for i in 1..report.len() {
-                let diff = report[i] - report[i - 1];
-                if report[i].cmp(&report[i - 1]) != ord || diff.abs() > 3 {
-                    this_result = false;
-                    break;
-                }
-            }
+            let this_result = Self::check_report(&report);
             result.push(this_result);
         }
         result.iter().filter(|x| **x).count() as Self::OutputType
@@ -40,28 +32,46 @@ impl Day for Day2 {
     fn part2(input: &Self::ParsedType) -> Self::OutputType {
         let mut result: Vec<bool> = Vec::with_capacity(input.len());
         for report in input {
-            let ord = report[1].cmp(&report[0]);
-            let mut this_result = true;
-            let mut level_dampened = false;
-            for i in 1..report.len() {
-                let diff = report[i] - report[i - 1];
-                if report[i].cmp(&report[i - 1]) != ord || diff.abs() > 3 {
-                    if level_dampened {
-                        this_result = false;
-                        break;
-                    }
-                    let diff = report[i] - report[i - 2];
-                    if report[i].cmp(&report[i - 2]) != ord || diff.abs() > 3 {
-                        this_result = false;
-                        break;
-                    }
-                    level_dampened = true;
-                    continue;
+            let mut this_result = Self::check_report(report);
+            for i in 0..report.len(){
+                let mut this_report = report.clone();
+                this_report.remove(i);
+                this_result = Self::check_report(&this_report);
+                if this_result {
+                    break;
                 }
             }
             result.push(this_result);
         }
         result.iter().filter(|x| **x).count() as Self::OutputType
+    }
+}
+
+impl Day2 {
+    fn check_report(report: &Vec<i32>) -> bool {
+        let ord = report[1].cmp(&report[0]);
+        let mut this_result = true;
+        for i in 1..report.len() {
+            let diff = report[i] - report[i - 1];
+            if report[i].cmp(&report[i - 1]) != ord || diff.abs() > 3 {
+                this_result = false;
+                break;
+            }
+        }
+        this_result
+    }
+
+    fn check_report_borrowed(report: &Vec<&i32>) -> bool {
+        let ord = report[1].cmp(&report[0]);
+        let mut this_result = true;
+        for i in 1..report.len() {
+            let diff = report[i] - report[i - 1];
+            if report[i].cmp(&report[i - 1]) != ord || diff.abs() > 3 {
+                this_result = false;
+                break;
+            }
+        }
+        this_result
     }
 }
 
