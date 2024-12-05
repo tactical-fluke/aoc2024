@@ -1,3 +1,4 @@
+use std::cmp::Ordering::{Equal, Greater, Less};
 use std::collections::{HashMap, HashSet};
 use regex::Regex;
 use aoc2024::day::{run_day, Day};
@@ -54,14 +55,23 @@ impl Day for Day5 {
     fn part1((rule_sets, updates): &Self::ParsedType) -> Self::OutputType {
         updates.iter()
             .map(|update| (update, Self::check_update(update, &rule_sets)))
-            .filter(|(update, valid)| *valid)
+            .filter(|(_, valid)| *valid)
             .map(|(update, _)| update)
             .map(|update| Self::get_middle_element(&update))
             .sum()
     }
 
-    fn part2(input: &Self::ParsedType) -> Self::OutputType {
-        0
+    fn part2((rule_sets, updates): &Self::ParsedType) -> Self::OutputType {
+        let mut fixed_updates = Vec::with_capacity(updates.len());
+        let updates = updates.clone();
+        for mut update in updates {
+            let valid = Self::check_update(&update, &rule_sets);
+            if !valid {
+                Self::fix_update(&mut update, rule_sets);
+                fixed_updates.push(update)
+            }
+        }
+        fixed_updates.iter().map(Self::get_middle_element).sum()
     }
 }
 
@@ -79,6 +89,16 @@ impl Day5 {
         }
 
         true
+    }
+
+    fn fix_update(update: &mut Vec<u32>, rule_set: &RuleSet) {
+        update.sort_by(|a, b| {
+            if rule_set.after_rules.get(a).unwrap_or(&HashSet::new()).contains(b) {
+                Less
+            } else if rule_set.before_rules.get(a).unwrap_or(&HashSet::new()).contains(b) {
+                Greater
+            } else  { Equal }
+        });
     }
 
     fn get_middle_element(update: &Vec<u32>) -> &u32 {
@@ -128,5 +148,37 @@ mod day5_tests {
 
     #[test]
     fn test_part2() {
+        const TEST_INPUT: &str = r"47|53
+97|13
+97|61
+97|47
+75|29
+61|13
+75|53
+29|13
+97|29
+53|29
+61|53
+97|53
+61|29
+47|13
+75|47
+97|75
+47|61
+75|61
+47|29
+75|13
+53|13
+
+75,47,61,53,29
+97,61,53,29,13
+75,29,13
+75,97,47,61,53
+61,13,29
+97,13,75,29,47";
+
+        let input = Day5::parse_input(TEST_INPUT);
+        let result = Day5::part2(&input);
+        assert_eq!(result, 123);
     }
 }
