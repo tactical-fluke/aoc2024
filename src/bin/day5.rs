@@ -1,6 +1,5 @@
 use std::cmp::Ordering::{Equal, Greater, Less};
 use std::collections::{HashMap, HashSet};
-use regex::Regex;
 use aoc2024::day::{run_day, Day};
 
 fn main() {
@@ -10,14 +9,12 @@ fn main() {
 
 struct RuleSet {
     after_rules: HashMap<u32, HashSet<u32>>,
-    before_rules: HashMap<u32, HashSet<u32>>,
 }
 
 impl RuleSet {
     fn new() -> RuleSet {
         Self {
             after_rules: HashMap::new(),
-            before_rules: HashMap::new(),
         }
     }
 }
@@ -43,7 +40,6 @@ impl Day for Day5 {
                 let (before, after) = line.split_once("|").unwrap();
                 let (before, after) = (before.parse().unwrap(), after.parse().unwrap());
                 rule_sets.after_rules.entry(before).or_insert(HashSet::new()).insert(after);
-                rule_sets.before_rules.entry(after).or_insert(HashSet::new()).insert(before);
             } else {
                 let update = line.split(',').map(|x| x.parse().unwrap()).collect();
                 updates.push(update);
@@ -57,7 +53,7 @@ impl Day for Day5 {
             .map(|update| (update, Self::check_update(update, &rule_sets)))
             .filter(|(_, valid)| *valid)
             .map(|(update, _)| update)
-            .map(|update| Self::get_middle_element(&update))
+            .map(Self::get_middle_element)
             .sum()
     }
 
@@ -78,14 +74,12 @@ impl Day for Day5 {
 impl Day5 {
     fn check_update(update: &Vec<u32>, rule_set: &RuleSet) -> bool {
         let mut before_set: HashSet<u32> = HashSet::new();
-        let mut after_set = update.iter().fold(HashSet::new(), |mut acc, x| { acc.insert(x.clone()); acc} );
 
         for page in update {
-            if !rule_set.after_rules.get(page).or(Some(&HashSet::new())).unwrap().intersection(&before_set).collect::<Vec<_>>().is_empty()
-                || !rule_set.before_rules.get(page).or(Some(&HashSet::new())).unwrap().intersection(&after_set).collect::<Vec<_>>().is_empty() {
+            if !rule_set.after_rules.get(page).unwrap_or(&HashSet::new()).intersection(&before_set).collect::<Vec<_>>().is_empty(){
                 return false;
             }
-            before_set.insert(after_set.take(page).unwrap());
+            before_set.insert(page.clone());
         }
 
         true
@@ -95,7 +89,7 @@ impl Day5 {
         update.sort_by(|a, b| {
             if rule_set.after_rules.get(a).unwrap_or(&HashSet::new()).contains(b) {
                 Less
-            } else if rule_set.before_rules.get(a).unwrap_or(&HashSet::new()).contains(b) {
+            } else if rule_set.after_rules.get(b).unwrap_or(&HashSet::new()).contains(a) {
                 Greater
             } else  { Equal }
         });
